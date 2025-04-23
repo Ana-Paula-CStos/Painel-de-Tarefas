@@ -1,5 +1,5 @@
 1. Qual foi sua lógica para estruturar o projeto?
-Escolhi completar o desafio usando HTML pois é uma linguagem que tenho mais conhecimento e me sinto mais confiante em usar. Claro, ainda estou aprendendo e aperfeiçoando as outras linguagens.
+Baseado um pouco a partir de um projeto antigo que eu mesma fiz, escolhi completar o desafio usando HTML pois é uma linguagem que tenho mais conhecimento e me sinto mais confiante em usar. Claro, ainda estou aprendendo e aperfeiçoando as outras linguagens.
 Interface: simples e intuitiva.
 Novas tarefas: em formulário, o usuário insere o título da tarefa, descrição, data e nível de prioridade.
 Filtros: o usuário consegue filtrar as tarefas por título, status (concluída ou pendente) e organizar por ordem de criação ou prioridade.
