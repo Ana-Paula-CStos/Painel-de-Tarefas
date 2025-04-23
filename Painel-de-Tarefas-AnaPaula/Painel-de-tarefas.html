@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel de Tarefas</title>
+  <style>
+    body {
+      font-family: Century Gothic, sans-serif;
+      padding: 20px;
+      background-color: #eadefc;
+      color: #38205e;
+    }
+    body.dark-mode {
+      background-color: #121212;
+      color: #f0e8fc;
+    }
+    h1 {
+      text-align: center;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .task {
+      background: #f0e8fc;
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      position: relative;
+    }
+    body.dark-mode .task {
+      background: #1e1e1e;
+    }
+    .overdue {
+      border-left: 5px solid red;
+    }
+    .completed {
+      background-color: #e0ffe0;
+    }
+    body.dark-mode .completed {
+      background-color: #264d26;
+    }
+    .subtasks {
+      margin-top: 10px;
+    }
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .filters {
+      margin-top: 10px;
+    }
+    .task-controls button {
+      background: #f0e8fc;
+      margin-right: 5px;
+      border-radius: 5px;
+    }
+    select, input[type="text"], input[type="date"] {
+      margin: 5px 0;
+      padding: 5px;
+    }
+    #toggleModeBtn {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 10px;
+    }
+  </style>
+</head>
+<body>
+  <button id="toggleModeBtn" onclick="toggleDarkMode()">Modo Escuro</button>
+  <div class="container">
+    <h1>Painel de Tarefas</h1>
+    <div class="controls">
+      <div>
+        <input type="text" id="title" placeholder="Título da tarefa">
+        <input type="text" id="description" placeholder="Descrição">
+        <input type="date" id="dueDate">
+        <select id="priority">
+          <option value="3">Baixa prioridade</option>
+          <option value="2">Média prioridade</option>
+          <option value="1">Alta prioridade</option>
+        </select>
+        <button onclick="addTask()">Adicionar Tarefa</button>
+      </div>
+      <div class="filters">
+        <input type="text" id="searchTitle" placeholder="Filtrar por título" oninput="renderTasks()">
+        <select id="filterStatus" onchange="renderTasks()">
+          <option value="todos">Todas</option>
+          <option value="pendente">Pendentes</option>
+          <option value="concluida">Concluídas</option>
+        </select>
+        <select id="sortBy" onchange="renderTasks()">
+          <option value="created">Ordem de criação</option>
+          <option value="priority">Prioridade</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="statusCount"></div>
+    <div id="taskList"></div>
+  </div>
+
+  <script>
+    let tasks = JSON.parse(localStorage.getItem("tasks")) || [];
+    let darkMode = localStorage.getItem("darkMode") === "true";
+
+    if (darkMode) document.body.classList.add("dark-mode");
+    updateDarkModeButton();
+
+    function saveTasks() {
+      localStorage.setItem("tasks", JSON.stringify(tasks));
+    }
+
+    function toggleDarkMode() {
+      darkMode = !darkMode;
+      document.body.classList.toggle("dark-mode", darkMode);
+      localStorage.setItem("darkMode", darkMode);
+      updateDarkModeButton();
+    }
+
+    function updateDarkModeButton() {
+      document.getElementById("toggleModeBtn").innerText = darkMode ? "Modo Claro" : "Modo Escuro";
+    }
+
+    function addTask() {
+      const title = document.getElementById("title").value.trim();
+      const description = document.getElementById("description").value.trim();
+      const dueDate = document.getElementById("dueDate").value;
+      const priority = parseInt(document.getElementById("priority").value);
+
+      if (!title || !dueDate) return alert("Preencha todos os campos obrigatórios.");
+
+      tasks.push({
+        id: Date.now(),
+        title,
+        description,
+        dueDate,
+        priority,
+        status: "pendente",
+        createdAt: new Date().toISOString(),
+        subtasks: []
+      });
+
+      saveTasks();
+      renderTasks();
+
+      document.getElementById("title").value = "";
+      document.getElementById("description").value = "";
+      document.getElementById("dueDate").value = "";
+    }
+
+    function toggleTaskStatus(id) {
+      const task = tasks.find(t => t.id === id);
+      task.status = task.status === "pendente" ? "concluida" : "pendente";
+      saveTasks();
+      renderTasks();
+    }
+
+    function deleteTask(id) {
+      tasks = tasks.filter(t => t.id !== id);
+      saveTasks();
+      renderTasks();
+    }
+
+    function addSubtask(taskId) {
+      const subtaskText = prompt("Digite a subtarefa:");
+      if (subtaskText) {
+        const task = tasks.find(t => t.id === taskId);
+        task.subtasks.push({ text: subtaskText, done: false });
+        saveTasks();
+        renderTasks();
+      }
+    }
+
+    function toggleSubtask(taskId, subIndex) {
+      const task = tasks.find(t => t.id === taskId);
+      task.subtasks[subIndex].done = !task.subtasks[subIndex].done;
+      saveTasks();
+      renderTasks();
+    }
+
+    function renderTasks() {
+      const list = document.getElementById("taskList");
+      const filter = document.getElementById("filterStatus").value;
+      const search = document.getElementById("searchTitle").value.toLowerCase();
+      const sort = document.getElementById("sortBy").value;
+
+      let filtered = tasks.filter(t => {
+        return (filter === "todos" || t.status === filter) && t.title.toLowerCase().includes(search);
+      });
+
+      if (sort === "priority") {
+        filtered.sort((a, b) => a.priority - b.priority);
+      } else {
+        filtered.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+      }
+
+      list.innerHTML = "";
+
+      filtered.forEach((t, i) => {
+        const isOverdue = new Date(t.dueDate) < new Date() && t.status !== "concluida";
+
+        const div = document.createElement("div");
+        div.className = `task ${t.status === "concluida" ? "completed" : ""} ${isOverdue ? "overdue" : ""}`;
+        div.innerHTML = `
+          <strong>${t.title}</strong> <br>
+          ${t.description}<br>
+          Data de entrega: ${t.dueDate} <br>
+          Prioridade: ${t.priority}<br>
+          Status: ${t.status}<br>
+          <div class="task-controls">
+            <button onclick="toggleTaskStatus(${t.id})">Alternar Status</button>
+            <button onclick="deleteTask(${t.id})">Excluir</button>
+            <button onclick="addSubtask(${t.id})">Adicionar Subtarefa</button>
+          </div>
+        `;
+
+        const ul = document.createElement("ul");
+        ul.className = "subtasks";
+        t.subtasks.forEach((s, idx) => {
+          const li = document.createElement("li");
+          li.innerHTML = `<input type="checkbox" ${s.done ? "checked" : ""} onclick="toggleSubtask(${t.id}, ${idx})"> ${s.text}`;
+          ul.appendChild(li);
+        });
+        div.appendChild(ul);
+
+        list.appendChild(div);
+      });
+
+      const pendentes = tasks.filter(t => t.status === "pendente").length;
+      const concluidas = tasks.filter(t => t.status === "concluida").length;
+      document.getElementById("statusCount").innerText = `Pendentes: ${pendentes} | Concluídas: ${concluidas}`;
+    }
+
+    renderTasks();
+  </script>
+</body>
+</html>
